@@ -62,6 +62,10 @@ type Traitement = {
   attente: string;
   statut: "a-jour" | "a-lancer";
   cout?: string;
+  /* Détails affichés dans l'écran de confirmation avant lancement */
+  fichesConcernees: number;
+  coutEstime: string;
+  reserveConcernee?: string;
   principal?: boolean;
   libelleBouton?: string;
 };
@@ -73,6 +77,9 @@ const TRAITEMENTS: Traitement[] = [
     description: "Identification SIREN des sociétés",
     attente: "2 fiches",
     statut: "a-jour",
+    fichesConcernees: 2,
+    coutEstime: "2 jetons",
+    reserveConcernee: "Jetons Pappers",
   },
   {
     numero: "02",
@@ -82,6 +89,9 @@ const TRAITEMENTS: Traitement[] = [
     statut: "a-lancer",
     principal: true,
     libelleBouton: "Lancer le traitement",
+    fichesConcernees: 1752,
+    coutEstime: "1 752 crédits",
+    reserveConcernee: "Crédits Dropcontact",
   },
   {
     numero: "03",
@@ -89,6 +99,8 @@ const TRAITEMENTS: Traitement[] = [
     description: "Classement algorithmique A/B/C",
     attente: "0",
     statut: "a-jour",
+    fichesConcernees: 0,
+    coutEstime: "—",
   },
   {
     numero: "04",
@@ -96,6 +108,8 @@ const TRAITEMENTS: Traitement[] = [
     description: "Classification par dictionnaire métier",
     attente: "0",
     statut: "a-jour",
+    fichesConcernees: 0,
+    coutEstime: "—",
   },
   {
     numero: "05",
@@ -105,6 +119,8 @@ const TRAITEMENTS: Traitement[] = [
     statut: "a-lancer",
     cout: "0,35 €",
     libelleBouton: "Lancer l'IA",
+    fichesConcernees: 288,
+    coutEstime: "0,35 €",
   },
 ];
 
