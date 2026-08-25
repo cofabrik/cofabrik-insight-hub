@@ -694,63 +694,46 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
   const aLancer = traitement.statut === "a-lancer";
   const [ouvert, setOuvert] = useState(false);
 
-  const cadre = traitement.principal
-    ? "border-2 border-primary bg-card p-5 shadow-lg"
-    : aLancer
-      ? "border border-accent/40 bg-accent/5 p-4"
-      : "border border-border bg-card p-4 opacity-60 transition-opacity hover:opacity-100";
+  const cadre = aLancer
+    ? "border border-accent/40 bg-accent/5"
+    : "border border-border bg-card opacity-60 hover:opacity-100";
 
-  const pastille = traitement.principal
-    ? "bg-primary text-primary-foreground"
-    : aLancer
-      ? "bg-accent text-accent-foreground"
-      : "border border-border bg-muted text-muted-foreground";
+  const pastille = aLancer
+    ? "bg-accent text-accent-foreground"
+    : "border border-border bg-muted text-muted-foreground";
 
   return (
-    <div className={`rounded-lg ${cadre}`}>
+    <div
+      className={`group rounded-lg p-4 transition-all ${cadre} ${
+        ouvert ? "opacity-100 ring-1 ring-foreground/20" : "hover:border-foreground/40"
+      }`}
+    >
       <div
         onClick={() => setOuvert((o) => !o)}
         className="flex cursor-pointer flex-col gap-4 select-none sm:flex-row sm:items-center sm:justify-between"
       >
-        <div className="flex items-center gap-4">
-          <span
-            aria-hidden="true"
-            className={`shrink-0 text-xs text-muted-foreground transition-transform duration-200 ${ouvert ? "rotate-90" : ""}`}
-          >
-            ▸
-          </span>
+        <div className="flex min-w-0 items-center gap-4">
           <div
             className={`grid h-10 w-10 shrink-0 place-items-center rounded font-mono text-xs ${pastille}`}
           >
             {traitement.numero}
           </div>
-          <div>
+          <div className="min-w-0">
             <div
-              className={
-                traitement.principal
-                  ? "text-lg font-bold"
-                  : aLancer
-                    ? "font-semibold text-accent-deep"
-                    : "font-semibold"
-              }
+              className={`font-semibold ${aLancer ? "text-accent-deep" : ""}`}
             >
               {traitement.nom}
             </div>
             <div
-              className={`text-xs ${aLancer && !traitement.principal ? "text-accent-deep/60" : "text-muted-foreground"}`}
+              className={`text-xs ${aLancer ? "text-accent-deep/60" : "text-muted-foreground"}`}
             >
               {traitement.description}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-6 sm:gap-12">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <div className="text-right">
-            {traitement.principal && (
-              <div className="animate-pulse text-xs font-bold uppercase tracking-tighter text-primary">
-                Important
-              </div>
-            )}
             {traitement.cout && (
               <div className="text-[10px] font-bold uppercase tracking-tighter text-accent">
                 Coût estimé : {traitement.cout}
@@ -763,11 +746,9 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
             )}
             <div
               className={`font-mono ${
-                traitement.principal
-                  ? "text-xl font-bold"
-                  : aLancer
-                    ? "font-bold text-accent-deep"
-                    : "text-muted-foreground"
+                aLancer
+                  ? "font-bold text-accent-deep"
+                  : "text-muted-foreground"
               } ${traitement.attente === "2 fiches" ? "font-bold text-foreground" : ""}`}
             >
               {traitement.attente}
@@ -784,6 +765,23 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
               </div>
             )}
           </div>
+
+          {/* Affordance explicite du tiroir */}
+          <span
+            className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              ouvert
+                ? "border-foreground/40 text-foreground"
+                : "border-border text-muted-foreground group-hover:border-foreground/40 group-hover:text-foreground"
+            }`}
+          >
+            {ouvert ? "Masquer" : "Détail"}
+            <span
+              aria-hidden="true"
+              className={`inline-block transition-transform duration-200 ${ouvert ? "rotate-180" : ""}`}
+            >
+              ▾
+            </span>
+          </span>
         </div>
       </div>
 
@@ -796,7 +794,6 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
 /* Détail d'un traitement — répartition par tier et reste à faire      */
 /* ------------------------------------------------------------------ */
 
-const COULEURS_TIERS = ["bg-primary", "bg-foreground", "bg-muted-foreground/30"];
 
 function DetailTraitement({ traitement }: { traitement: Traitement }) {
   const { perimetre, tiers, reste } = traitement.impact;
