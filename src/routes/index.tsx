@@ -388,12 +388,94 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
   );
 }
 
+/* Les valeurs numériques (« 11 163 ») utilisent l'espace fine comme séparateur. */
+function nombre(texte: string): number {
+  return Number(texte.replace(/\s/g, "").replace(/[^\d]/g, "")) || 0;
+}
+
 function JournalBord() {
+  const traitementsDisponibles = Array.from(
+    new Set(HISTORIQUE.map((p) => p.traitement)),
+  ).sort((a, b) => a.localeCompare(b, "fr"));
+
+  const [ordre, setOrdre] = useState<"recent" | "ancien">("recent");
+  const [filtre, setFiltre] = useState<string>("Tous");
+
+  const passages = HISTORIQUE.filter(
+    (p) => filtre === "Tous" || p.traitement === filtre,
+  ).sort((a, b) => {
+    // Les débuts sont au format « JJ/MM HH:mm » — année implicite 2026.
+    const ta = Date.parse(`2026/${a.debut.replace(" ", "T")}:00`);
+    const tb = Date.parse(`2026/${b.debut.replace(" ", "T")}:00`);
+    return ordre === "recent" ? tb - ta : ta - tb;
+  });
+
+  const totalLues = passages.reduce((acc, p) => acc + nombre(p.lues), 0);
+  const totalEcrites = passages.reduce((acc, p) => acc + nombre(p.ecrites), 0);
+  const format = (n: number) => n.toLocaleString("fr-FR");
+
   return (
     <section>
-      <h2 className="mb-6 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-        Journal de bord — 15 derniers passages
-      </h2>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          Journal de bord — {passages.length}{" "}
+          {passages.length > 1 ? "passages" : "passage"}
+        </h2>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Traitement
+            <select
+              value={filtre}
+              onChange={(e) => setFiltre(e.target.value)}
+              className="cursor-pointer rounded-md border border-border bg-card px-3 py-2 font-sans text-xs font-medium normal-case tracking-normal text-foreground transition-colors hover:border-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="Tous">Tous les traitements</option>
+              {traitementsDisponibles.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <button
+            type="button"
+            onClick={() =>
+              setOrdre((o) => (o === "recent" ? "ancien" : "recent"))
+            }
+            className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+          >
+            <span>{ordre === "recent" ? "↓" : "↑"}</span>
+            {ordre === "recent" ? "Plus récent" : "Plus ancien"}
+          </button>
+        </div>
+      </div>
+
+      {/* Résumé des fiches lues et écrites sur la sélection affichée */}
+      <div className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line shadow-sm">
+        <div className="flex items-baseline justify-between bg-card px-5 py-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Fiches lues (cumul)
+          </span>
+          <span className="font-mono text-2xl font-bold tracking-tighter">
+            {format(totalLues)}
+          </span>
+        </div>
+        <div className="flex items-baseline justify-between bg-card px-5 py-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Fiches écrites (cumul)
+          </span>
+          <span
+            className={`font-mono text-2xl font-bold tracking-tighter ${
+              totalEcrites > 0 ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            {format(totalEcrites)}
+          </span>
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
@@ -419,7 +501,7 @@ function JournalBord() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border font-mono text-xs">
-            {HISTORIQUE.map((passage) => {
+            {passages.map((passage) => {
               const aEcrit =
                 passage.mode === "écriture" && passage.ecrites !== "0";
               return (
@@ -456,7 +538,38 @@ function JournalBord() {
                 </tr>
               );
             })}
+            {passages.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="p-8 text-center font-sans text-sm text-muted-foreground"
+                >
+                  Aucun passage ne correspond à ce traitement.
+                </td>
+              </tr>
+            )}
           </tbody>
+          {passages.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/50 font-mono text-xs">
+                <td className="p-4 font-sans text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Total ({passages.length}{" "}
+                  {passages.length > 1 ? "passages" : "passage"})
+                </td>
+                <td className="p-4" />
+                <td className="p-4" />
+                <td className="p-4 text-right font-bold">{format(totalLues)}</td>
+                <td
+                  className={`p-4 text-right font-bold ${
+                    totalEcrites > 0 ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {format(totalEcrites)}
+                </td>
+                <td className="p-4" />
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </section>
