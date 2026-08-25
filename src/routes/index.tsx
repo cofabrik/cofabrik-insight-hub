@@ -1238,6 +1238,103 @@ function JournalBord() {
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Chaîne de traitement — la matière passe d'un traitement à l'autre   */
+/* ------------------------------------------------------------------ */
+
+/* Connecteur entre deux traitements : ce qui sort de l'un alimente l'autre. */
+function ConnecteurFlux({
+  quantite,
+  libelle,
+  attente,
+}: {
+  quantite: string;
+  libelle: string;
+  attente?: string;
+}) {
+  return (
+    <div className="flex items-stretch gap-4" aria-hidden="true">
+      <div className="relative ml-[35px] w-px self-stretch bg-line">
+        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[8px] text-muted-foreground">
+          ▼
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2.5 text-xs text-muted-foreground">
+        <span className="font-mono font-bold text-foreground">{quantite}</span>
+        <span>{libelle}</span>
+        {attente && (
+          <span className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-accent-deep">
+            {attente}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChaineTraitements() {
+  const [pappers, triage, dropcontact, role, roleIa] = TRAITEMENTS;
+  if (!pappers || !triage || !dropcontact || !role || !roleIa) return null;
+
+  return (
+    <section>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          Traitements automatiques — la chaîne de production
+        </h2>
+        <span className="rounded bg-accent/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
+          Action requise sur 2 traitements
+        </span>
+      </div>
+
+      <div>
+        <LigneTraitement traitement={pappers} />
+        <ConnecteurFlux
+          quantite="5 035"
+          libelle="sociétés identifiées alimentent le classement"
+          attente="2 en attente"
+        />
+        <LigneTraitement traitement={triage} />
+
+        {/* Après le classement, la matière se divise en deux branches */}
+        <div className="flex items-center gap-4 py-1 pl-[35px]">
+          <span className="text-[8px] text-muted-foreground">▼</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Le classement alimente deux traitements
+          </span>
+        </div>
+
+        <div className="grid gap-2 lg:grid-cols-2 lg:gap-6">
+          {/* Branche enrichissement */}
+          <div>
+            <ConnecteurFlux
+              quantite="4 489"
+              libelle="contacts des tiers A & B à enrichir"
+              attente="1 752 en attente"
+            />
+            <LigneTraitement traitement={dropcontact} />
+          </div>
+
+          {/* Branche classification des rôles */}
+          <div>
+            <ConnecteurFlux
+              quantite="6 128"
+              libelle="intitulés de poste à classer"
+            />
+            <LigneTraitement traitement={role} />
+            <ConnecteurFlux
+              quantite="288"
+              libelle="intitulés ambigus confiés à l'IA"
+              attente="en attente · 0,35 €"
+            />
+            <LigneTraitement traitement={roleIa} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Cockpit() {
   return (
     <div className="min-h-screen bg-background p-6 font-sans text-foreground lg:p-12">
@@ -1253,35 +1350,16 @@ function Cockpit() {
               titre={BASE.societes.titre}
               total={BASE.societes.total}
               tiers={BASE.societes.tiers}
-              miseEnAvant="encre"
             />
             <PanneauBase
               titre={BASE.contacts.titre}
               total={BASE.contacts.total}
               tiers={BASE.contacts.tiers}
-              miseEnAvant="cobalt"
             />
           </div>
         </section>
 
-        <section>
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-              Traitements automatiques
-            </h2>
-            <span className="rounded bg-accent/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
-              Action requise sur 2 traitements
-            </span>
-          </div>
-          <div className="space-y-2">
-            {TRAITEMENTS.map((traitement) => (
-              <LigneTraitement
-                key={traitement.numero}
-                traitement={traitement}
-              />
-            ))}
-          </div>
-        </section>
+        <ChaineTraitements />
 
         <JournalBord />
       </main>
