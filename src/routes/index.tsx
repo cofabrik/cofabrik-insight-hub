@@ -883,6 +883,85 @@ function nombre(texte: string): number {
   return Number(texte.replace(/\s/g, "").replace(/[^\d]/g, "")) || 0;
 }
 
+const COULEURS_PASTILLE_TIER: Record<string, string> = {
+  A: "bg-primary/10 text-primary",
+  B: "bg-foreground/10 text-foreground",
+  C: "bg-muted text-muted-foreground",
+};
+
+function DetailPassage({
+  passage,
+  detail,
+}: {
+  passage: (typeof HISTORIQUE)[number];
+  detail: DetailPassageData;
+}) {
+  return (
+    <div className="grid gap-6 border-l-2 border-primary/40 pl-5 md:grid-cols-[1.6fr_1fr]">
+      {/* Extrait des fiches du passage */}
+      <div>
+        <div className="mb-2 flex items-baseline justify-between gap-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Fiches lues et écrites — extrait
+          </span>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            5 fiches sur {passage.lues} lues
+          </span>
+        </div>
+        <ul className="divide-y divide-border">
+          {detail.fiches.map((fiche) => (
+            <li
+              key={fiche.nom}
+              className="flex items-center justify-between gap-4 py-2"
+            >
+              <span className="flex items-center gap-2.5 font-sans text-xs font-medium text-foreground">
+                <span
+                  className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${COULEURS_PASTILLE_TIER[fiche.tier]}`}
+                >
+                  {fiche.tier}
+                </span>
+                {fiche.nom}
+              </span>
+              <span className="flex items-center gap-2 text-right">
+                <span className="text-[11px] text-muted-foreground">
+                  {fiche.changement}
+                </span>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[10px] ${
+                    fiche.ecrite
+                      ? "bg-primary/10 font-bold text-primary"
+                      : "border border-border text-muted-foreground"
+                  }`}
+                >
+                  {fiche.ecrite ? "écrite" : "lue"}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Points d'attention du passage */}
+      <div>
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Points d'attention
+        </div>
+        <ul className="space-y-2">
+          {detail.attention.map((point) => (
+            <li
+              key={point}
+              className="flex items-start gap-2 text-xs leading-snug text-foreground"
+            >
+              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
+              {point}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function JournalBord() {
   const traitementsDisponibles = Array.from(
     new Set(HISTORIQUE.map((p) => p.traitement)),
@@ -992,41 +1071,64 @@ function JournalBord() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border font-mono text-xs">
-            {passages.map((passage) => {
+            {passages.map((passage, index) => {
               const aEcrit =
                 passage.mode === "écriture" && passage.ecrites !== "0";
+              const cle = `${passage.debut}-${passage.traitement}`;
+              const estOuvert = ouvert === cle;
               return (
-                <tr
-                  key={`${passage.debut}-${passage.traitement}`}
-                  className="transition-colors hover:bg-muted"
-                >
-                  <td className="p-4 text-muted-foreground">{passage.debut}</td>
-                  <td className="p-4 font-sans font-semibold text-foreground">
-                    {passage.traitement}
-                  </td>
-                  <td className="p-4">
-                    <span
-                      className={`rounded px-1.5 py-0.5 ${
-                        passage.mode === "écriture"
-                          ? "bg-muted text-muted-foreground"
-                          : "border border-border text-muted-foreground"
+                <Fragment key={cle}>
+                  <tr
+                    onClick={() => setOuvert(estOuvert ? null : cle)}
+                    aria-expanded={estOuvert}
+                    className={`cursor-pointer transition-colors hover:bg-muted ${estOuvert ? "bg-muted/60" : ""}`}
+                  >
+                    <td className="p-4 text-muted-foreground">
+                      <span
+                        aria-hidden="true"
+                        className={`mr-2 inline-block text-[10px] transition-transform duration-200 ${estOuvert ? "rotate-90" : ""}`}
+                      >
+                        ▸
+                      </span>
+                      {passage.debut}
+                    </td>
+                    <td className="p-4 font-sans font-semibold text-foreground">
+                      {passage.traitement}
+                    </td>
+                    <td className="p-4">
+                      <span
+                        className={`rounded px-1.5 py-0.5 ${
+                          passage.mode === "écriture"
+                            ? "bg-muted text-muted-foreground"
+                            : "border border-border text-muted-foreground"
+                        }`}
+                      >
+                        {passage.mode}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">{passage.lues}</td>
+                    <td
+                      className={`p-4 text-right ${
+                        aEcrit
+                          ? "font-bold text-primary"
+                          : "text-muted-foreground"
                       }`}
                     >
-                      {passage.mode}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">{passage.lues}</td>
-                  <td
-                    className={`p-4 text-right ${
-                      aEcrit
-                        ? "font-bold text-primary"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {passage.ecrites}
-                  </td>
-                  <td className="p-4 text-muted-foreground">{passage.fin}</td>
-                </tr>
+                      {passage.ecrites}
+                    </td>
+                    <td className="p-4 text-muted-foreground">{passage.fin}</td>
+                  </tr>
+                  {estOuvert && (
+                    <tr className="bg-muted/30">
+                      <td colSpan={6} className="px-6 py-5">
+                        <DetailPassage
+                          passage={passage}
+                          detail={detailDuPassage(passage, index)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
             {passages.length === 0 && (
