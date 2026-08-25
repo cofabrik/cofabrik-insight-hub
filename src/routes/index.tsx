@@ -538,6 +538,7 @@ function PanneauBase({
 
 function LigneTraitement({ traitement }: { traitement: Traitement }) {
   const aLancer = traitement.statut === "a-lancer";
+  const [ouvert, setOuvert] = useState(false);
 
   const cadre = traitement.principal
     ? "border-2 border-primary bg-card p-5 shadow-lg"
@@ -552,71 +553,180 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
       : "border border-border bg-muted text-muted-foreground";
 
   return (
-    <div
-      className={`flex flex-col gap-4 rounded-lg sm:flex-row sm:items-center sm:justify-between ${cadre}`}
-    >
-      <div className="flex items-center gap-6">
-        <div
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded font-mono text-xs ${pastille}`}
-        >
-          {traitement.numero}
-        </div>
-        <div>
-          <div
-            className={
-              traitement.principal
-                ? "text-lg font-bold"
-                : aLancer
-                  ? "font-semibold text-accent-deep"
-                  : "font-semibold"
-            }
+    <div className={`rounded-lg ${cadre}`}>
+      <div
+        onClick={() => setOuvert((o) => !o)}
+        className="flex cursor-pointer flex-col gap-4 select-none sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex items-center gap-4">
+          <span
+            aria-hidden="true"
+            className={`shrink-0 text-xs text-muted-foreground transition-transform duration-200 ${ouvert ? "rotate-90" : ""}`}
           >
-            {traitement.nom}
+            ▸
+          </span>
+          <div
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded font-mono text-xs ${pastille}`}
+          >
+            {traitement.numero}
           </div>
-          <div
-            className={`text-xs ${aLancer && !traitement.principal ? "text-accent-deep/60" : "text-muted-foreground"}`}
-          >
-            {traitement.description}
+          <div>
+            <div
+              className={
+                traitement.principal
+                  ? "text-lg font-bold"
+                  : aLancer
+                    ? "font-semibold text-accent-deep"
+                    : "font-semibold"
+              }
+            >
+              {traitement.nom}
+            </div>
+            <div
+              className={`text-xs ${aLancer && !traitement.principal ? "text-accent-deep/60" : "text-muted-foreground"}`}
+            >
+              {traitement.description}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6 sm:gap-12">
+          <div className="text-right">
+            {traitement.principal && (
+              <div className="animate-pulse text-xs font-bold uppercase tracking-tighter text-primary">
+                Important
+              </div>
+            )}
+            {traitement.cout && (
+              <div className="text-[10px] font-bold uppercase tracking-tighter text-accent">
+                Coût estimé : {traitement.cout}
+              </div>
+            )}
+            {!aLancer && (
+              <div className="text-xs uppercase tracking-tighter text-muted-foreground">
+                Attente
+              </div>
+            )}
+            <div
+              className={`font-mono ${
+                traitement.principal
+                  ? "text-xl font-bold"
+                  : aLancer
+                    ? "font-bold text-accent-deep"
+                    : "text-muted-foreground"
+              } ${traitement.attente === "2 fiches" ? "font-bold text-foreground" : ""}`}
+            >
+              {traitement.attente}
+            </div>
+          </div>
+
+          {/* Le bouton de lancement ne doit pas déplier le détail */}
+          <div onClick={(e) => e.stopPropagation()}>
+            {aLancer ? (
+              <BoutonLancement traitement={traitement} />
+            ) : (
+              <div className="w-32 rounded border border-border bg-muted py-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                À jour
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-6 sm:gap-12">
-        <div className="text-right">
-          {traitement.principal && (
-            <div className="animate-pulse text-xs font-bold uppercase tracking-tighter text-primary">
-              Important
-            </div>
-          )}
-          {traitement.cout && (
-            <div className="text-[10px] font-bold uppercase tracking-tighter text-accent">
-              Coût estimé : {traitement.cout}
-            </div>
-          )}
-          {!aLancer && (
-            <div className="text-xs uppercase tracking-tighter text-muted-foreground">
-              Attente
-            </div>
-          )}
-          <div
-            className={`font-mono ${
-              traitement.principal
-                ? "text-xl font-bold"
-                : aLancer
-                  ? "font-bold text-accent-deep"
-                  : "text-muted-foreground"
-            } ${traitement.attente === "2 fiches" ? "font-bold text-foreground" : ""}`}
-          >
-            {traitement.attente}
-          </div>
-        </div>
+      {ouvert && <DetailTraitement traitement={traitement} />}
+    </div>
+  );
+}
 
-        {aLancer ? (
-          <BoutonLancement traitement={traitement} />
-        ) : (
-          <div className="w-32 rounded border border-border bg-muted py-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-            À jour
+/* ------------------------------------------------------------------ */
+/* Détail d'un traitement — répartition par tier et reste à faire      */
+/* ------------------------------------------------------------------ */
+
+const COULEURS_TIERS = ["bg-primary", "bg-foreground", "bg-muted-foreground/30"];
+
+function DetailTraitement({ traitement }: { traitement: Traitement }) {
+  const { perimetre, tiers, reste } = traitement.impact;
+  const total = tiers.reduce((acc, t) => acc + t.valeur, 0);
+  const totalReste = reste.reduce((acc, t) => acc + t.valeur, 0);
+  const format = (n: number) => n.toLocaleString("fr-FR");
+
+  return (
+    <div className="mt-4 grid gap-6 border-t border-border pt-5 md:grid-cols-[1.5fr_1fr]">
+      {/* Répartition des fiches impactées par tier */}
+      <div>
+        <div className="mb-3 flex items-baseline justify-between gap-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Fiches impactées — {perimetre}
+          </span>
+          <span className="font-mono text-sm font-bold">{format(total)}</span>
+        </div>
+        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+          {tiers.map((tier, i) =>
+            tier.valeur > 0 ? (
+              <div
+                key={tier.nom}
+                className={COULEURS_TIERS[i]}
+                style={{ width: `${(tier.valeur / total) * 100}%` }}
+              />
+            ) : null,
+          )}
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-4">
+          {tiers.map((tier, i) => (
+            <div key={tier.nom} className="flex flex-col">
+              <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span className={`h-2 w-2 rounded-full ${COULEURS_TIERS[i]}`} />
+                {tier.nom}
+              </span>
+              <span className="font-mono text-sm font-bold">
+                {tier.valeur > 0 ? format(tier.valeur) : "—"}
+              </span>
+              {tier.valeur === 0 && (
+                <span className="text-[10px] text-muted-foreground">
+                  hors périmètre
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Reste à faire, ventilé par tier */}
+      <div className="rounded-lg border border-border bg-muted/40 p-4">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Reste à faire
+          </span>
+          <span
+            className={`font-mono text-2xl font-bold tracking-tighter ${
+              totalReste > 0 ? "text-accent-deep" : "text-muted-foreground"
+            }`}
+          >
+            {format(totalReste)}
+          </span>
+        </div>
+        {totalReste > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {reste.map((r) => (
+              <span
+                key={r.nom}
+                className="font-mono text-xs text-muted-foreground"
+              >
+                {r.nom}{" "}
+                <span
+                  className={
+                    r.valeur > 0 ? "font-bold text-accent-deep" : undefined
+                  }
+                >
+                  {format(r.valeur)}
+                </span>
+              </span>
+            ))}
           </div>
+        ) : (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Rien en attente — le traitement est à jour.
+          </p>
         )}
       </div>
     </div>
