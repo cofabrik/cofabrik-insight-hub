@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -62,6 +62,10 @@ type Traitement = {
   attente: string;
   statut: "a-jour" | "a-lancer";
   cout?: string;
+  /* Détails affichés dans l'écran de confirmation avant lancement */
+  fichesConcernees: number;
+  coutEstime: string;
+  reserveConcernee?: string;
   principal?: boolean;
   libelleBouton?: string;
 };
@@ -73,6 +77,9 @@ const TRAITEMENTS: Traitement[] = [
     description: "Identification SIREN des sociétés",
     attente: "2 fiches",
     statut: "a-jour",
+    fichesConcernees: 2,
+    coutEstime: "2 jetons",
+    reserveConcernee: "Jetons Pappers",
   },
   {
     numero: "02",
@@ -82,6 +89,9 @@ const TRAITEMENTS: Traitement[] = [
     statut: "a-lancer",
     principal: true,
     libelleBouton: "Lancer le traitement",
+    fichesConcernees: 1752,
+    coutEstime: "1 752 crédits",
+    reserveConcernee: "Crédits Dropcontact",
   },
   {
     numero: "03",
@@ -89,6 +99,8 @@ const TRAITEMENTS: Traitement[] = [
     description: "Classement algorithmique A/B/C",
     attente: "0",
     statut: "a-jour",
+    fichesConcernees: 0,
+    coutEstime: "—",
   },
   {
     numero: "04",
@@ -96,6 +108,8 @@ const TRAITEMENTS: Traitement[] = [
     description: "Classification par dictionnaire métier",
     attente: "0",
     statut: "a-jour",
+    fichesConcernees: 0,
+    coutEstime: "—",
   },
   {
     numero: "05",
@@ -105,6 +119,8 @@ const TRAITEMENTS: Traitement[] = [
     statut: "a-lancer",
     cout: "0,35 €",
     libelleBouton: "Lancer l'IA",
+    fichesConcernees: 288,
+    coutEstime: "0,35 €",
   },
 ];
 
@@ -131,17 +147,16 @@ const HISTORIQUE = [
 /* ------------------------------------------------------------------ */
 
 function BoutonLancement({
-  tonalite,
-  libelle,
+  traitement,
 }: {
-  tonalite: "principal" | "accent";
-  libelle: string;
+  traitement: Traitement;
 }) {
-  const [etat, setEtat] = useState<"pret" | "arme" | "lance">("pret");
+  const [etat, setEtat] = useState<"pret" | "confirme" | "lance">("pret");
+  const [mode, setMode] = useState<"simulation" | "écriture">("simulation");
 
   useEffect(() => {
-    if (etat !== "arme") return;
-    const minuteur = setTimeout(() => setEtat("pret"), 6000);
+    if (etat !== "confirme") return;
+    const minuteur = setTimeout(() => setEtat("pret"), 8000);
     return () => clearTimeout(minuteur);
   }, [etat]);
 
@@ -158,46 +173,196 @@ function BoutonLancement({
     );
   }
 
-  if (etat === "arme") {
-    return (
-      <div className="flex flex-col items-end gap-2">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setEtat("pret")}
-            className="cursor-pointer rounded-lg border border-border bg-card px-4 py-3 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            onClick={() => setEtat("lance")}
-            className="cursor-pointer rounded-lg bg-foreground px-6 py-3 text-xs font-bold uppercase tracking-widest text-background shadow-lg ring-2 ring-foreground/20 transition-colors hover:bg-foreground/90"
-          >
-            Confirmer le lancement
-          </button>
-        </div>
-        <p className="max-w-56 text-right text-[10px] leading-snug text-muted-foreground">
-          Le lancement consomme des crédits. Sans confirmation, l'armement
-          s'annule tout seul.
-        </p>
-      </div>
-    );
-  }
+  const tonalite = traitement.principal ? "principal" : "accent";
+  const libelle = traitement.libelleBouton ?? "Lancer";
 
-  const styles =
+  const stylesBouton =
     tonalite === "principal"
       ? "bg-primary text-primary-foreground shadow-lg hover:bg-foreground"
       : "bg-accent text-accent-foreground shadow-sm hover:bg-accent-deep";
 
   return (
-    <button
-      type="button"
-      onClick={() => setEtat("arme")}
-      className={`cursor-pointer rounded-lg px-8 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${styles}`}
-    >
-      {libelle}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => setEtat("confirme")}
+        className={`cursor-pointer rounded-lg px-8 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${stylesBouton}`}
+      >
+        {libelle}
+      </button>
+
+      {etat === "confirme" && (
+        <EcranConfirmation
+          traitement={traitement}
+          mode={mode}
+          setMode={setMode}
+          onConfirmer={() => setEtat("lance")}
+          onAnnuler={() => setEtat("pret")}
+        />
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Écran de confirmation — récapitulatif avant lancement                */
+/* ------------------------------------------------------------------ */
+
+function EcranConfirmation({
+  traitement,
+  mode,
+  setMode,
+  onConfirmer,
+  onAnnuler,
+}: {
+  traitement: Traitement;
+  mode: "simulation" | "écriture";
+  setMode: (m: "simulation" | "écriture") => void;
+  onConfirmer: () => void;
+  onAnnuler: () => void;
+}) {
+  const consomme = mode === "écriture" && traitement.coutEstime !== "—";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-xl border border-line bg-card shadow-2xl">
+        {/* En-tête */}
+        <div className="flex items-center gap-3 border-b border-border px-6 py-5">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded bg-foreground font-mono text-xs text-background">
+            {traitement.numero}
+          </div>
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Confirmer le lancement
+            </div>
+            <div className="text-base font-bold">{traitement.nom}</div>
+          </div>
+        </div>
+
+        {/* Corps — récapitulatif */}
+        <div className="space-y-4 px-6 py-6">
+          <LigneRecap etiquette="Fiches concernées">
+            <span className="font-mono text-lg font-bold">
+              {traitement.fichesConcernees.toLocaleString("fr-FR")}
+            </span>
+          </LigneRecap>
+
+          <LigneRecap etiquette="Coût estimé">
+            {consomme ? (
+              <span className="font-mono text-lg font-bold text-accent-deep">
+                {traitement.coutEstime}
+              </span>
+            ) : (
+              <span className="font-mono text-lg font-bold text-muted-foreground">
+                0
+              </span>
+            )}
+            {consomme && traitement.reserveConcernee && (
+              <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                ({traitement.reserveConcernee})
+              </span>
+            )}
+          </LigneRecap>
+
+          {/* Sélecteur de mode */}
+          <div>
+            <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Mode d'exécution
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMode("simulation")}
+                className={`cursor-pointer rounded-lg border p-3 text-left transition-colors ${
+                  mode === "simulation"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-border bg-muted/30 hover:border-foreground/30"
+                }`}
+              >
+                <div className="text-xs font-bold uppercase tracking-wider">
+                  Simulation
+                </div>
+                <div className="mt-1 text-[10px] leading-snug text-muted-foreground">
+                  Lecture seule, aucun coût
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("écriture")}
+                className={`cursor-pointer rounded-lg border p-3 text-left transition-colors ${
+                  mode === "écriture"
+                    ? "border-accent bg-accent/10 ring-1 ring-accent"
+                    : "border-border bg-muted/30 hover:border-foreground/30"
+                }`}
+              >
+                <div className="text-xs font-bold uppercase tracking-wider text-accent-deep">
+                  Écriture
+                </div>
+                <div className="mt-1 text-[10px] leading-snug text-muted-foreground">
+                  Modifie la base, consomme des crédits
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {mode === "écriture" && traitement.coutEstime !== "—" && (
+            <div className="flex items-start gap-2 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3">
+              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
+              <p className="text-[11px] leading-snug text-accent-deep">
+                Le mode écriture consomme {traitement.coutEstime}
+                {traitement.reserveConcernee
+                  ? ` (${traitement.reserveConcernee})`
+                  : ""}
+                . L'opération est définitive.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Pied — actions */}
+        <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-5">
+          <button
+            type="button"
+            onClick={onAnnuler}
+            className="cursor-pointer rounded-lg border border-border bg-card px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={onConfirmer}
+            className={`cursor-pointer rounded-lg px-6 py-2.5 text-xs font-bold uppercase tracking-widest shadow-lg transition-colors ${
+              mode === "écriture"
+                ? "bg-accent text-accent-foreground hover:bg-accent-deep"
+                : "bg-primary text-primary-foreground hover:bg-foreground"
+            }`}
+          >
+            Confirmer · {mode}
+          </button>
+        </div>
+
+        <p className="px-6 pb-4 text-center text-[10px] text-muted-foreground">
+          Sans confirmation, l'écran se referme tout seul.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function LigneRecap({
+  etiquette,
+  children,
+}: {
+  etiquette: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-border pb-3">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        {etiquette}
+      </span>
+      <div className="flex items-center">{children}</div>
+    </div>
   );
 }
 
@@ -374,10 +539,7 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
         </div>
 
         {aLancer ? (
-          <BoutonLancement
-            tonalite={traitement.principal ? "principal" : "accent"}
-            libelle={traitement.libelleBouton ?? "Lancer"}
-          />
+          <BoutonLancement traitement={traitement} />
         ) : (
           <div className="w-32 rounded border border-border bg-muted py-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
             À jour
