@@ -732,8 +732,8 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          <div className="text-right">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 @2xl:w-auto @2xl:justify-end @2xl:gap-6">
+          <div className="text-left @2xl:text-right">
             {traitement.cout && (
               <div className="text-[10px] font-bold uppercase tracking-tighter text-accent">
                 Coût estimé : {traitement.cout}
