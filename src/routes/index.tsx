@@ -327,25 +327,25 @@ function detailDuPassage(
         ? [...FICHES_SOCIETES, ...FICHES_CONTACTS]
         : FICHES_CONTACTS;
 
-  const changements = CHANGEMENTS_PAR_TRAITEMENT[categorie];
+  const changements = CHANGEMENTS_PAR_TRAITEMENT[categorie]!;
   const tiers: ("A" | "B" | "C")[] = ["A", "B", "B", "C", "A"];
 
   const fiches: FicheDetail[] = Array.from({ length: 5 }, (_, i) => {
-    const changement = changements[(index + i) % changements.length];
+    const changement = changements[(index + i) % changements.length]!;
     const sansEcriture =
       changement.includes("Aucune") ||
       changement.includes("inchangé") ||
       changement.includes("file IA");
     return {
-      nom: noms[(index * 3 + i * 2) % noms.length],
-      tier: tiers[(index + i) % tiers.length],
+      nom: noms[(index * 3 + i * 2) % noms.length]!,
+      tier: tiers[(index + i) % tiers.length]!,
       changement,
       ecrite: passage.mode === "écriture" && ecrites > 0 && !sansEcriture,
     };
   });
 
   const base = ecrites > 0 ? ecrites : lues;
-  const attention = ATTENTIONS_PAR_TRAITEMENT[categorie].map((modele, i) =>
+  const attention = ATTENTIONS_PAR_TRAITEMENT[categorie]!.map((modele, i) =>
     modele.replace(
       "{n}",
       Math.max(1, Math.round(base * (0.04 + i * 0.02))).toLocaleString("fr-FR"),
