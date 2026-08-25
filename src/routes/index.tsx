@@ -704,13 +704,13 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
 
   return (
     <div
-      className={`group rounded-lg p-4 transition-all ${cadre} ${
+      className={`group @container rounded-lg p-4 transition-all ${cadre} ${
         ouvert ? "opacity-100 ring-1 ring-foreground/20" : "hover:border-foreground/40"
       }`}
     >
       <div
         onClick={() => setOuvert((o) => !o)}
-        className="flex cursor-pointer flex-col gap-4 select-none sm:flex-row sm:items-center sm:justify-between"
+        className="flex cursor-pointer flex-col gap-4 select-none @2xl:flex-row @2xl:items-center @2xl:justify-between"
       >
         <div className="flex min-w-0 items-center gap-4">
           <div
