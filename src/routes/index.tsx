@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -214,6 +214,151 @@ const HISTORIQUE = [
   { debut: "18/08 16:24", traitement: "Dropcontact", mode: "écriture", lues: "4 489", ecrites: "1 047", fin: "16:27" },
   { debut: "18/08 09:50", traitement: "Propagation", mode: "écriture", lues: "6 128", ecrites: "11", fin: "09:50" },
 ];
+
+/* ------------------------------------------------------------------ */
+/* Détail d'un passage — extrait de fiches et points d'attention       */
+/* ------------------------------------------------------------------ */
+
+type FicheDetail = {
+  nom: string;
+  tier: "A" | "B" | "C";
+  changement: string;
+  ecrite: boolean;
+};
+
+type DetailPassageData = {
+  fiches: FicheDetail[];
+  attention: string[];
+};
+
+const FICHES_SOCIETES = [
+  "Tronics Microsystems",
+  "Asteelflash Grenoble",
+  "Serma Technologies",
+  "MMT-Baumann",
+  "Eolane Valence",
+  "Photonique Systems",
+  "Alpes Contrôle",
+  "Sirea Énergie",
+  "Wavelight Medical",
+  "Mecapack Lyon",
+];
+
+const FICHES_CONTACTS = [
+  "D. Revol — Dir. industriel",
+  "S. Chabert — Resp. achats",
+  "M. Perrin — Dir. R&D",
+  "C. Bouvier — Resp. production",
+  "L. Faure — Dir. technique",
+  "A. Morel — Resp. supply chain",
+  "J. Roche — Chef de projet",
+  "V. Lambert — Dir. général",
+  "N. Girard — Resp. qualité",
+  "P. Marchand — Ing. process",
+];
+
+const CHANGEMENTS_PAR_TRAITEMENT: Record<string, string[]> = {
+  pappers: [
+    "SIREN identifié",
+    "SIREN confirmé",
+    "Dirigeant vérifié",
+    "Aucune correspondance trouvée",
+  ],
+  dropcontact: [
+    "Email professionnel ajouté",
+    "Téléphone direct ajouté",
+    "Email + téléphone ajoutés",
+    "Aucune donnée trouvée",
+  ],
+  triage: [
+    "Tier B → A",
+    "Tier C → B",
+    "Score recalculé, tier inchangé",
+    "Tier A confirmé",
+  ],
+  role: [
+    "Rôle : direction industrielle",
+    "Rôle : achats / supply chain",
+    "Rôle : R&D / technique",
+    "Intitulé ambigu → file IA",
+  ],
+};
+
+const ATTENTIONS_PAR_TRAITEMENT: Record<string, string[]> = {
+  pappers: [
+    "{n} sociétés sans correspondance SIREN — vérification manuelle conseillée",
+    "{n} homonymes détectés — rapprochement à confirmer",
+  ],
+  dropcontact: [
+    "{n} emails invalides écartés automatiquement",
+    "{n} fiches sans réponse — relance possible au prochain passage",
+  ],
+  triage: [
+    "{n} fiches sans chiffre d'affaires — score incomplet",
+    "{n} sociétés sans effectif renseigné",
+  ],
+  role: [
+    "{n} intitulés ambigus renvoyés vers le traitement IA",
+    "{n} fiches sans intitulé — ignorées",
+  ],
+};
+
+function categoriePassage(nom: string): string {
+  const n = nom.toLowerCase();
+  if (n.includes("pappers")) return "pappers";
+  if (n.includes("dropcontact")) return "dropcontact";
+  if (n.includes("rôle")) return "role";
+  return "triage";
+}
+
+/* Reconstitue un extrait représentatif du passage à partir de ses totaux. */
+function detailDuPassage(
+  passage: (typeof HISTORIQUE)[number],
+  index: number,
+): DetailPassageData {
+  const categorie = categoriePassage(passage.traitement);
+  const lues = nombre(passage.lues);
+  const ecrites = nombre(passage.ecrites);
+
+  const noms =
+    categorie === "pappers"
+      ? FICHES_SOCIETES
+      : categorie === "triage"
+        ? [...FICHES_SOCIETES, ...FICHES_CONTACTS]
+        : FICHES_CONTACTS;
+
+  const changements = CHANGEMENTS_PAR_TRAITEMENT[categorie];
+  const tiers: ("A" | "B" | "C")[] = ["A", "B", "B", "C", "A"];
+
+  const fiches: FicheDetail[] = Array.from({ length: 5 }, (_, i) => {
+    const changement = changements[(index + i) % changements.length];
+    const sansEcriture =
+      changement.includes("Aucune") ||
+      changement.includes("inchangé") ||
+      changement.includes("file IA");
+    return {
+      nom: noms[(index * 3 + i * 2) % noms.length],
+      tier: tiers[(index + i) % tiers.length],
+      changement,
+      ecrite: passage.mode === "écriture" && ecrites > 0 && !sansEcriture,
+    };
+  });
+
+  const base = ecrites > 0 ? ecrites : lues;
+  const attention = ATTENTIONS_PAR_TRAITEMENT[categorie].map((modele, i) =>
+    modele.replace(
+      "{n}",
+      Math.max(1, Math.round(base * (0.04 + i * 0.02))).toLocaleString("fr-FR"),
+    ),
+  );
+  if (passage.mode === "simulation") {
+    attention.unshift("Simulation — aucune écriture en base.");
+  } else if (ecrites === 0) {
+    attention.unshift("Aucune fiche modifiée — la base était déjà à jour.");
+  }
+
+  return { fiches, attention };
+}
 
 /* ------------------------------------------------------------------ */
 /* Bouton de lancement — geste délibéré en deux temps                  */
@@ -745,6 +890,7 @@ function JournalBord() {
 
   const [ordre, setOrdre] = useState<"recent" | "ancien">("recent");
   const [filtre, setFiltre] = useState<string>("Tous");
+  const [ouvert, setOuvert] = useState<string | null>(null);
 
   const passages = HISTORIQUE.filter(
     (p) => filtre === "Tous" || p.traitement === filtre,
