@@ -79,6 +79,8 @@ type Traitement = {
   };
 };
 
+/* Les traitements sont ordonnés comme la chaîne de production :
+   Pappers alimente le triage, qui alimente Dropcontact et la classification des rôles. */
 const TRAITEMENTS: Traitement[] = [
   {
     numero: "01",
@@ -105,31 +107,6 @@ const TRAITEMENTS: Traitement[] = [
   },
   {
     numero: "02",
-    nom: "Dropcontact",
-    description: "Enrichissement emails et téléphones (Tiers A & B)",
-    attente: "1 752 en attente",
-    statut: "a-lancer",
-    principal: true,
-    libelleBouton: "Lancer le traitement",
-    fichesConcernees: 1752,
-    coutEstime: "1 752 crédits",
-    reserveConcernee: "Crédits Dropcontact",
-    impact: {
-      perimetre: "contacts des tiers A et B",
-      tiers: [
-        { nom: "Tier A", valeur: 1318 },
-        { nom: "Tier B", valeur: 3171 },
-        { nom: "Tier C", valeur: 0 },
-      ],
-      reste: [
-        { nom: "A", valeur: 412 },
-        { nom: "B", valeur: 1340 },
-        { nom: "C", valeur: 0 },
-      ],
-    },
-  },
-  {
-    numero: "03",
     nom: "Triage · Score · Propagation",
     description: "Classement algorithmique A/B/C",
     attente: "0",
@@ -146,6 +123,34 @@ const TRAITEMENTS: Traitement[] = [
       reste: [
         { nom: "A", valeur: 0 },
         { nom: "B", valeur: 0 },
+        { nom: "C", valeur: 0 },
+      ],
+    },
+  },
+  {
+    numero: "03",
+    nom: "Dropcontact",
+    description: "Enrichissement emails et téléphones (Tiers A & B)",
+    attente: "1 752 en attente",
+    statut: "a-lancer",
+    libelleBouton: "Lancer le traitement",
+    fichesConcernees: 1752,
+    coutEstime: "1 752 crédits",
+    reserveConcernee: "Crédits Dropcontact",
+    canaux: [
+      { nom: "Email professionnel", valeur: 3902 },
+      { nom: "Téléphone direct", valeur: 2410 },
+    ],
+    impact: {
+      perimetre: "contacts des tiers A et B",
+      tiers: [
+        { nom: "Tier A", valeur: 1318 },
+        { nom: "Tier B", valeur: 3171 },
+        { nom: "Tier C", valeur: 0 },
+      ],
+      reste: [
+        { nom: "A", valeur: 412 },
+        { nom: "B", valeur: 1340 },
         { nom: "C", valeur: 0 },
       ],
     },
@@ -199,21 +204,21 @@ const TRAITEMENTS: Traitement[] = [
 ];
 
 const HISTORIQUE = [
-  { debut: "24/08 15:32", traitement: "Triage score propagation", mode: "écriture", lues: "11 163", ecrites: "0", fin: "15:33" },
-  { debut: "24/08 12:17", traitement: "Propagation", mode: "écriture", lues: "6 128", ecrites: "19", fin: "12:17" },
+  { debut: "24/08 15:32", traitement: "Triage · Score · Propagation", mode: "écriture", lues: "11 163", ecrites: "0", fin: "15:33" },
+  { debut: "24/08 12:17", traitement: "Triage · Score · Propagation", mode: "écriture", lues: "6 128", ecrites: "19", fin: "12:17" },
   { debut: "24/08 08:41", traitement: "Pappers", mode: "simulation", lues: "5 035", ecrites: "0", fin: "08:42" },
   { debut: "23/08 17:05", traitement: "Rôle du contact", mode: "écriture", lues: "6 128", ecrites: "442", fin: "17:06" },
   { debut: "23/08 11:22", traitement: "Dropcontact", mode: "écriture", lues: "4 489", ecrites: "1 204", fin: "11:26" },
   { debut: "22/08 16:48", traitement: "Triage · Score · Propagation", mode: "écriture", lues: "11 163", ecrites: "27", fin: "16:49" },
   { debut: "22/08 09:03", traitement: "Pappers", mode: "écriture", lues: "5 035", ecrites: "88", fin: "09:04" },
-  { debut: "21/08 14:19", traitement: "Propagation", mode: "simulation", lues: "6 128", ecrites: "0", fin: "14:19" },
+  { debut: "21/08 14:19", traitement: "Rôle du contact — IA", mode: "simulation", lues: "742", ecrites: "0", fin: "14:20" },
   { debut: "21/08 10:55", traitement: "Rôle du contact", mode: "écriture", lues: "6 128", ecrites: "311", fin: "10:56" },
   { debut: "20/08 15:40", traitement: "Dropcontact", mode: "écriture", lues: "4 489", ecrites: "980", fin: "15:43" },
   { debut: "20/08 08:12", traitement: "Triage · Score · Propagation", mode: "simulation", lues: "11 163", ecrites: "0", fin: "08:13" },
   { debut: "19/08 17:31", traitement: "Pappers", mode: "écriture", lues: "5 035", ecrites: "52", fin: "17:32" },
   { debut: "19/08 11:07", traitement: "Rôle du contact", mode: "écriture", lues: "6 128", ecrites: "266", fin: "11:08" },
   { debut: "18/08 16:24", traitement: "Dropcontact", mode: "écriture", lues: "4 489", ecrites: "1 047", fin: "16:27" },
-  { debut: "18/08 09:50", traitement: "Propagation", mode: "écriture", lues: "6 128", ecrites: "11", fin: "09:50" },
+  { debut: "18/08 09:50", traitement: "Triage · Score · Propagation", mode: "écriture", lues: "6 128", ecrites: "11", fin: "09:50" },
 ];
 
 /* ------------------------------------------------------------------ */
