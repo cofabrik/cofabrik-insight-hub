@@ -55,6 +55,8 @@ const BASE = {
   },
 };
 
+type RepartitionTier = { nom: string; valeur: number };
+
 type Traitement = {
   numero: string;
   nom: string;
@@ -68,6 +70,12 @@ type Traitement = {
   reserveConcernee?: string;
   principal?: boolean;
   libelleBouton?: string;
+  /* Répartition par tier affichée au clic sur la ligne */
+  impact: {
+    perimetre: string;
+    tiers: RepartitionTier[];
+    reste: RepartitionTier[];
+  };
 };
 
 const TRAITEMENTS: Traitement[] = [
@@ -80,6 +88,19 @@ const TRAITEMENTS: Traitement[] = [
     fichesConcernees: 2,
     coutEstime: "2 jetons",
     reserveConcernee: "Jetons Pappers",
+    impact: {
+      perimetre: "sociétés de la base",
+      tiers: [
+        { nom: "Tier A", valeur: 787 },
+        { nom: "Tier B", valeur: 2881 },
+        { nom: "Tier C", valeur: 1367 },
+      ],
+      reste: [
+        { nom: "A", valeur: 0 },
+        { nom: "B", valeur: 1 },
+        { nom: "C", valeur: 1 },
+      ],
+    },
   },
   {
     numero: "02",
@@ -92,6 +113,19 @@ const TRAITEMENTS: Traitement[] = [
     fichesConcernees: 1752,
     coutEstime: "1 752 crédits",
     reserveConcernee: "Crédits Dropcontact",
+    impact: {
+      perimetre: "contacts des tiers A et B",
+      tiers: [
+        { nom: "Tier A", valeur: 1318 },
+        { nom: "Tier B", valeur: 3171 },
+        { nom: "Tier C", valeur: 0 },
+      ],
+      reste: [
+        { nom: "A", valeur: 412 },
+        { nom: "B", valeur: 1340 },
+        { nom: "C", valeur: 0 },
+      ],
+    },
   },
   {
     numero: "03",
@@ -101,6 +135,19 @@ const TRAITEMENTS: Traitement[] = [
     statut: "a-jour",
     fichesConcernees: 0,
     coutEstime: "—",
+    impact: {
+      perimetre: "toute la base — sociétés et contacts",
+      tiers: [
+        { nom: "Tier A", valeur: 2105 },
+        { nom: "Tier B", valeur: 6052 },
+        { nom: "Tier C", valeur: 3006 },
+      ],
+      reste: [
+        { nom: "A", valeur: 0 },
+        { nom: "B", valeur: 0 },
+        { nom: "C", valeur: 0 },
+      ],
+    },
   },
   {
     numero: "04",
@@ -110,6 +157,19 @@ const TRAITEMENTS: Traitement[] = [
     statut: "a-jour",
     fichesConcernees: 0,
     coutEstime: "—",
+    impact: {
+      perimetre: "contacts de la base",
+      tiers: [
+        { nom: "Tier A", valeur: 1318 },
+        { nom: "Tier B", valeur: 3171 },
+        { nom: "Tier C", valeur: 1639 },
+      ],
+      reste: [
+        { nom: "A", valeur: 0 },
+        { nom: "B", valeur: 0 },
+        { nom: "C", valeur: 0 },
+      ],
+    },
   },
   {
     numero: "05",
@@ -121,6 +181,19 @@ const TRAITEMENTS: Traitement[] = [
     libelleBouton: "Lancer l'IA",
     fichesConcernees: 288,
     coutEstime: "0,35 €",
+    impact: {
+      perimetre: "contacts de la base",
+      tiers: [
+        { nom: "Tier A", valeur: 1318 },
+        { nom: "Tier B", valeur: 3171 },
+        { nom: "Tier C", valeur: 1639 },
+      ],
+      reste: [
+        { nom: "A", valeur: 87 },
+        { nom: "B", valeur: 153 },
+        { nom: "C", valeur: 48 },
+      ],
+    },
   },
 ];
 
