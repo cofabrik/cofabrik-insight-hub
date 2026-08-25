@@ -397,20 +397,14 @@ function BoutonLancement({
     );
   }
 
-  const tonalite = traitement.principal ? "principal" : "accent";
   const libelle = traitement.libelleBouton ?? "Lancer";
-
-  const stylesBouton =
-    tonalite === "principal"
-      ? "bg-primary text-primary-foreground shadow-lg hover:bg-foreground"
-      : "bg-accent text-accent-foreground shadow-sm hover:bg-accent-deep";
 
   return (
     <>
       <button
         type="button"
         onClick={() => setEtat("confirme")}
-        className={`cursor-pointer rounded-lg px-8 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${stylesBouton}`}
+        className="cursor-pointer rounded-lg bg-primary px-8 py-3 text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-lg transition-colors hover:bg-foreground"
       >
         {libelle}
       </button>
@@ -634,25 +628,29 @@ function Entete() {
   );
 }
 
+/* Échelle d'encre commune à toutes les réglettes de tiers :
+   A = encre pleine, B = encre moyenne, C = encre légère. */
+const COULEURS_TIERS = [
+  "bg-foreground",
+  "bg-foreground/45",
+  "bg-muted-foreground/30",
+];
+
 function PanneauBase({
   titre,
   total,
   tiers,
-  miseEnAvant,
 }: {
   titre: string;
   total: string;
-  tiers: { nom: string; valeur: string; largeur?: string }[];
-  miseEnAvant: "encre" | "cobalt";
+  tiers: { nom: string; valeur: number }[];
 }) {
-  const [tierA, ...autres] = tiers;
-  if (!tierA) return null;
-  const couleur = miseEnAvant === "cobalt" ? "bg-primary" : "bg-foreground";
-  const texte = miseEnAvant === "cobalt" ? "text-primary" : "text-foreground";
+  const somme = tiers.reduce((acc, t) => acc + t.valeur, 0);
+  const format = (n: number) => n.toLocaleString("fr-FR");
 
   return (
     <div className="bg-card p-8">
-      <div className="mb-8 flex items-baseline justify-between">
+      <div className="mb-6 flex items-baseline justify-between">
         <h3 className="text-sm font-semibold uppercase text-muted-foreground">
           {titre}
         </h3>
@@ -660,28 +658,33 @@ function PanneauBase({
           {total}
         </span>
       </div>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-sm">
-            <span className={`h-2 w-2 rounded-full ${couleur}`} />
-            {tierA.nom}
-          </span>
-          <span className={`font-mono font-bold ${texte}`}>{tierA.valeur}</span>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+
+      {/* Réglette de répartition des tiers */}
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+        {tiers.map((tier, i) => (
           <div
-            className={`h-full ${couleur}`}
-            style={{ width: tierA.largeur }}
+            key={tier.nom}
+            className={COULEURS_TIERS[i]}
+            style={{ width: `${(tier.valeur / somme) * 100}%` }}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-8 pt-2 text-sm">
-          {autres.map((tier) => (
-            <div key={tier.nom} className="flex flex-col">
-              <span className="text-xs text-muted-foreground">{tier.nom}</span>
-              <span className="font-mono font-medium">{tier.valeur}</span>
-            </div>
-          ))}
-        </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-4">
+        {tiers.map((tier, i) => (
+          <div key={tier.nom} className="flex flex-col">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className={`h-2 w-2 rounded-full ${COULEURS_TIERS[i]}`} />
+              {tier.nom}
+            </span>
+            <span className="mt-1 font-mono text-lg font-bold tracking-tight">
+              {format(tier.valeur)}
+            </span>
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {Math.round((tier.valeur / somme) * 100)}&nbsp;% de la base
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
