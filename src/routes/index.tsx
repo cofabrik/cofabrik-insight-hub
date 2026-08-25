@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -214,6 +214,151 @@ const HISTORIQUE = [
   { debut: "18/08 16:24", traitement: "Dropcontact", mode: "écriture", lues: "4 489", ecrites: "1 047", fin: "16:27" },
   { debut: "18/08 09:50", traitement: "Propagation", mode: "écriture", lues: "6 128", ecrites: "11", fin: "09:50" },
 ];
+
+/* ------------------------------------------------------------------ */
+/* Détail d'un passage — extrait de fiches et points d'attention       */
+/* ------------------------------------------------------------------ */
+
+type FicheDetail = {
+  nom: string;
+  tier: "A" | "B" | "C";
+  changement: string;
+  ecrite: boolean;
+};
+
+type DetailPassageData = {
+  fiches: FicheDetail[];
+  attention: string[];
+};
+
+const FICHES_SOCIETES = [
+  "Tronics Microsystems",
+  "Asteelflash Grenoble",
+  "Serma Technologies",
+  "MMT-Baumann",
+  "Eolane Valence",
+  "Photonique Systems",
+  "Alpes Contrôle",
+  "Sirea Énergie",
+  "Wavelight Medical",
+  "Mecapack Lyon",
+];
+
+const FICHES_CONTACTS = [
+  "D. Revol — Dir. industriel",
+  "S. Chabert — Resp. achats",
+  "M. Perrin — Dir. R&D",
+  "C. Bouvier — Resp. production",
+  "L. Faure — Dir. technique",
+  "A. Morel — Resp. supply chain",
+  "J. Roche — Chef de projet",
+  "V. Lambert — Dir. général",
+  "N. Girard — Resp. qualité",
+  "P. Marchand — Ing. process",
+];
+
+const CHANGEMENTS_PAR_TRAITEMENT: Record<string, string[]> = {
+  pappers: [
+    "SIREN identifié",
+    "SIREN confirmé",
+    "Dirigeant vérifié",
+    "Aucune correspondance trouvée",
+  ],
+  dropcontact: [
+    "Email professionnel ajouté",
+    "Téléphone direct ajouté",
+    "Email + téléphone ajoutés",
+    "Aucune donnée trouvée",
+  ],
+  triage: [
+    "Tier B → A",
+    "Tier C → B",
+    "Score recalculé, tier inchangé",
+    "Tier A confirmé",
+  ],
+  role: [
+    "Rôle : direction industrielle",
+    "Rôle : achats / supply chain",
+    "Rôle : R&D / technique",
+    "Intitulé ambigu → file IA",
+  ],
+};
+
+const ATTENTIONS_PAR_TRAITEMENT: Record<string, string[]> = {
+  pappers: [
+    "{n} sociétés sans correspondance SIREN — vérification manuelle conseillée",
+    "{n} homonymes détectés — rapprochement à confirmer",
+  ],
+  dropcontact: [
+    "{n} emails invalides écartés automatiquement",
+    "{n} fiches sans réponse — relance possible au prochain passage",
+  ],
+  triage: [
+    "{n} fiches sans chiffre d'affaires — score incomplet",
+    "{n} sociétés sans effectif renseigné",
+  ],
+  role: [
+    "{n} intitulés ambigus renvoyés vers le traitement IA",
+    "{n} fiches sans intitulé — ignorées",
+  ],
+};
+
+function categoriePassage(nom: string): string {
+  const n = nom.toLowerCase();
+  if (n.includes("pappers")) return "pappers";
+  if (n.includes("dropcontact")) return "dropcontact";
+  if (n.includes("rôle")) return "role";
+  return "triage";
+}
+
+/* Reconstitue un extrait représentatif du passage à partir de ses totaux. */
+function detailDuPassage(
+  passage: (typeof HISTORIQUE)[number],
+  index: number,
+): DetailPassageData {
+  const categorie = categoriePassage(passage.traitement);
+  const lues = nombre(passage.lues);
+  const ecrites = nombre(passage.ecrites);
+
+  const noms =
+    categorie === "pappers"
+      ? FICHES_SOCIETES
+      : categorie === "triage"
+        ? [...FICHES_SOCIETES, ...FICHES_CONTACTS]
+        : FICHES_CONTACTS;
+
+  const changements = CHANGEMENTS_PAR_TRAITEMENT[categorie]!;
+  const tiers: ("A" | "B" | "C")[] = ["A", "B", "B", "C", "A"];
+
+  const fiches: FicheDetail[] = Array.from({ length: 5 }, (_, i) => {
+    const changement = changements[(index + i) % changements.length]!;
+    const sansEcriture =
+      changement.includes("Aucune") ||
+      changement.includes("inchangé") ||
+      changement.includes("file IA");
+    return {
+      nom: noms[(index * 3 + i * 2) % noms.length]!,
+      tier: tiers[(index + i) % tiers.length]!,
+      changement,
+      ecrite: passage.mode === "écriture" && ecrites > 0 && !sansEcriture,
+    };
+  });
+
+  const base = ecrites > 0 ? ecrites : lues;
+  const attention = ATTENTIONS_PAR_TRAITEMENT[categorie]!.map((modele, i) =>
+    modele.replace(
+      "{n}",
+      Math.max(1, Math.round(base * (0.04 + i * 0.02))).toLocaleString("fr-FR"),
+    ),
+  );
+  if (passage.mode === "simulation") {
+    attention.unshift("Simulation — aucune écriture en base.");
+  } else if (ecrites === 0) {
+    attention.unshift("Aucune fiche modifiée — la base était déjà à jour.");
+  }
+
+  return { fiches, attention };
+}
 
 /* ------------------------------------------------------------------ */
 /* Bouton de lancement — geste délibéré en deux temps                  */
@@ -738,6 +883,85 @@ function nombre(texte: string): number {
   return Number(texte.replace(/\s/g, "").replace(/[^\d]/g, "")) || 0;
 }
 
+const COULEURS_PASTILLE_TIER: Record<string, string> = {
+  A: "bg-primary/10 text-primary",
+  B: "bg-foreground/10 text-foreground",
+  C: "bg-muted text-muted-foreground",
+};
+
+function DetailPassage({
+  passage,
+  detail,
+}: {
+  passage: (typeof HISTORIQUE)[number];
+  detail: DetailPassageData;
+}) {
+  return (
+    <div className="grid gap-6 border-l-2 border-primary/40 pl-5 md:grid-cols-[1.6fr_1fr]">
+      {/* Extrait des fiches du passage */}
+      <div>
+        <div className="mb-2 flex items-baseline justify-between gap-4">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Fiches lues et écrites — extrait
+          </span>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            5 fiches sur {passage.lues} lues
+          </span>
+        </div>
+        <ul className="divide-y divide-border">
+          {detail.fiches.map((fiche) => (
+            <li
+              key={fiche.nom}
+              className="flex items-center justify-between gap-4 py-2"
+            >
+              <span className="flex items-center gap-2.5 font-sans text-xs font-medium text-foreground">
+                <span
+                  className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${COULEURS_PASTILLE_TIER[fiche.tier]}`}
+                >
+                  {fiche.tier}
+                </span>
+                {fiche.nom}
+              </span>
+              <span className="flex items-center gap-2 text-right">
+                <span className="text-[11px] text-muted-foreground">
+                  {fiche.changement}
+                </span>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[10px] ${
+                    fiche.ecrite
+                      ? "bg-primary/10 font-bold text-primary"
+                      : "border border-border text-muted-foreground"
+                  }`}
+                >
+                  {fiche.ecrite ? "écrite" : "lue"}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Points d'attention du passage */}
+      <div>
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Points d'attention
+        </div>
+        <ul className="space-y-2">
+          {detail.attention.map((point) => (
+            <li
+              key={point}
+              className="flex items-start gap-2 text-xs leading-snug text-foreground"
+            >
+              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
+              {point}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function JournalBord() {
   const traitementsDisponibles = Array.from(
     new Set(HISTORIQUE.map((p) => p.traitement)),
@@ -745,6 +969,7 @@ function JournalBord() {
 
   const [ordre, setOrdre] = useState<"recent" | "ancien">("recent");
   const [filtre, setFiltre] = useState<string>("Tous");
+  const [ouvert, setOuvert] = useState<string | null>(null);
 
   const passages = HISTORIQUE.filter(
     (p) => filtre === "Tous" || p.traitement === filtre,
@@ -846,41 +1071,64 @@ function JournalBord() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border font-mono text-xs">
-            {passages.map((passage) => {
+            {passages.map((passage, index) => {
               const aEcrit =
                 passage.mode === "écriture" && passage.ecrites !== "0";
+              const cle = `${passage.debut}-${passage.traitement}`;
+              const estOuvert = ouvert === cle;
               return (
-                <tr
-                  key={`${passage.debut}-${passage.traitement}`}
-                  className="transition-colors hover:bg-muted"
-                >
-                  <td className="p-4 text-muted-foreground">{passage.debut}</td>
-                  <td className="p-4 font-sans font-semibold text-foreground">
-                    {passage.traitement}
-                  </td>
-                  <td className="p-4">
-                    <span
-                      className={`rounded px-1.5 py-0.5 ${
-                        passage.mode === "écriture"
-                          ? "bg-muted text-muted-foreground"
-                          : "border border-border text-muted-foreground"
+                <Fragment key={cle}>
+                  <tr
+                    onClick={() => setOuvert(estOuvert ? null : cle)}
+                    aria-expanded={estOuvert}
+                    className={`cursor-pointer transition-colors hover:bg-muted ${estOuvert ? "bg-muted/60" : ""}`}
+                  >
+                    <td className="p-4 text-muted-foreground">
+                      <span
+                        aria-hidden="true"
+                        className={`mr-2 inline-block text-[10px] transition-transform duration-200 ${estOuvert ? "rotate-90" : ""}`}
+                      >
+                        ▸
+                      </span>
+                      {passage.debut}
+                    </td>
+                    <td className="p-4 font-sans font-semibold text-foreground">
+                      {passage.traitement}
+                    </td>
+                    <td className="p-4">
+                      <span
+                        className={`rounded px-1.5 py-0.5 ${
+                          passage.mode === "écriture"
+                            ? "bg-muted text-muted-foreground"
+                            : "border border-border text-muted-foreground"
+                        }`}
+                      >
+                        {passage.mode}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">{passage.lues}</td>
+                    <td
+                      className={`p-4 text-right ${
+                        aEcrit
+                          ? "font-bold text-primary"
+                          : "text-muted-foreground"
                       }`}
                     >
-                      {passage.mode}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">{passage.lues}</td>
-                  <td
-                    className={`p-4 text-right ${
-                      aEcrit
-                        ? "font-bold text-primary"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {passage.ecrites}
-                  </td>
-                  <td className="p-4 text-muted-foreground">{passage.fin}</td>
-                </tr>
+                      {passage.ecrites}
+                    </td>
+                    <td className="p-4 text-muted-foreground">{passage.fin}</td>
+                  </tr>
+                  {estOuvert && (
+                    <tr className="bg-muted/30">
+                      <td colSpan={6} className="px-6 py-5">
+                        <DetailPassage
+                          passage={passage}
+                          detail={detailDuPassage(passage, index)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
             {passages.length === 0 && (
