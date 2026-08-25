@@ -354,7 +354,7 @@ function LigneRecap({
   children,
 }: {
   etiquette: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between border-b border-border pb-3">
