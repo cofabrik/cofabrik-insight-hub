@@ -39,18 +39,18 @@ const BASE = {
     titre: "Sociétés classées",
     total: "5 035",
     tiers: [
-      { nom: "Tier A", valeur: "787", largeur: "15.6%" },
-      { nom: "Tier B", valeur: "2 881" },
-      { nom: "Tier C", valeur: "1 367" },
+      { nom: "Tier A", valeur: 787 },
+      { nom: "Tier B", valeur: 2881 },
+      { nom: "Tier C", valeur: 1367 },
     ],
   },
   contacts: {
     titre: "Contacts activables",
     total: "6 128",
     tiers: [
-      { nom: "Tier A", valeur: "1 318", largeur: "21.5%" },
-      { nom: "Tier B", valeur: "3 171" },
-      { nom: "Tier C", valeur: "1 639" },
+      { nom: "Tier A", valeur: 1318 },
+      { nom: "Tier B", valeur: 3171 },
+      { nom: "Tier C", valeur: 1639 },
     ],
   },
 };
@@ -68,8 +68,9 @@ type Traitement = {
   fichesConcernees: number;
   coutEstime: string;
   reserveConcernee?: string;
-  principal?: boolean;
   libelleBouton?: string;
+  /* Canaux de données déjà récupérés (ex. email / téléphone pour Dropcontact) */
+  canaux?: { nom: string; valeur: number }[];
   /* Répartition par tier affichée au clic sur la ligne */
   impact: {
     perimetre: string;
