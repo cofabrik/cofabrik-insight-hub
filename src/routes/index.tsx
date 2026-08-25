@@ -539,10 +539,7 @@ function LigneTraitement({ traitement }: { traitement: Traitement }) {
         </div>
 
         {aLancer ? (
-          <BoutonLancement
-            tonalite={traitement.principal ? "principal" : "accent"}
-            libelle={traitement.libelleBouton ?? "Lancer"}
-          />
+          <BoutonLancement traitement={traitement} />
         ) : (
           <div className="w-32 rounded border border-border bg-muted py-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
             À jour
