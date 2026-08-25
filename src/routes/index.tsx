@@ -799,87 +799,146 @@ function DetailTraitement({ traitement }: { traitement: Traitement }) {
   const { perimetre, tiers, reste } = traitement.impact;
   const total = tiers.reduce((acc, t) => acc + t.valeur, 0);
   const totalReste = reste.reduce((acc, t) => acc + t.valeur, 0);
+  const dejaTraitees = total - totalReste;
   const format = (n: number) => n.toLocaleString("fr-FR");
 
   return (
-    <div className="mt-4 grid gap-6 border-t border-border pt-5 md:grid-cols-[1.5fr_1fr]">
-      {/* Répartition des fiches impactées par tier */}
-      <div>
-        <div className="mb-3 flex items-baseline justify-between gap-4">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Fiches impactées — {perimetre}
-          </span>
-          <span className="font-mono text-sm font-bold">{format(total)}</span>
-        </div>
-        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
-          {tiers.map((tier, i) =>
-            tier.valeur > 0 ? (
-              <div
-                key={tier.nom}
-                className={COULEURS_TIERS[i]}
-                style={{ width: `${(tier.valeur / total) * 100}%` }}
-              />
-            ) : null,
-          )}
-        </div>
-        <div className="mt-3 grid grid-cols-3 gap-4">
-          {tiers.map((tier, i) => (
-            <div key={tier.nom} className="flex flex-col">
-              <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                <span className={`h-2 w-2 rounded-full ${COULEURS_TIERS[i]}`} />
-                {tier.nom}
-              </span>
-              <span className="font-mono text-sm font-bold">
-                {tier.valeur > 0 ? format(tier.valeur) : "—"}
-              </span>
-              {tier.valeur === 0 && (
-                <span className="text-[10px] text-muted-foreground">
-                  hors périmètre
+    <div className="mt-4 space-y-6 border-t border-border pt-5">
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Réglette de répartition des fiches impactées par tier */}
+        <div>
+          <div className="mb-3 flex items-baseline justify-between gap-4">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Fiches impactées — {perimetre}
+            </span>
+            <span className="font-mono text-sm font-bold">{format(total)}</span>
+          </div>
+          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+            {tiers.map((tier, i) =>
+              tier.valeur > 0 ? (
+                <div
+                  key={tier.nom}
+                  className={COULEURS_TIERS[i]}
+                  style={{ width: `${(tier.valeur / total) * 100}%` }}
+                />
+              ) : null,
+            )}
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-4">
+            {tiers.map((tier, i) => (
+              <div key={tier.nom} className="flex flex-col">
+                <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <span className={`h-2 w-2 rounded-full ${COULEURS_TIERS[i]}`} />
+                  {tier.nom}
                 </span>
-              )}
-            </div>
-          ))}
+                <span className="font-mono text-sm font-bold">
+                  {tier.valeur > 0 ? format(tier.valeur) : "—"}
+                </span>
+                {tier.valeur === 0 && (
+                  <span className="text-[10px] text-muted-foreground">
+                    hors périmètre
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Réglette d'avancement : déjà traitées vs reste à faire */}
+        <div className="rounded-lg border border-border bg-muted/40 p-4">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Reste à faire
+            </span>
+            <span
+              className={`font-mono text-2xl font-bold tracking-tighter ${
+                totalReste > 0 ? "text-accent-deep" : "text-muted-foreground"
+              }`}
+            >
+              {format(totalReste)}
+            </span>
+          </div>
+          <div className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-background">
+            {dejaTraitees > 0 && (
+              <div
+                className="bg-foreground/25"
+                style={{ width: `${(dejaTraitees / total) * 100}%` }}
+              />
+            )}
+            {totalReste > 0 && (
+              <div
+                className="bg-accent"
+                style={{ width: `${(totalReste / total) * 100}%` }}
+              />
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-foreground/25" />
+              {format(dejaTraitees)} déjà traitées
+            </span>
+            {totalReste > 0 ? (
+              <>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-accent" />
+                  <span className="font-bold text-accent-deep">
+                    {format(totalReste)} en attente
+                  </span>
+                </span>
+                {reste
+                  .filter((r) => r.valeur > 0)
+                  .map((r) => (
+                    <span key={r.nom} className="font-mono">
+                      dont {r.nom}&nbsp;:{" "}
+                      <span className="font-bold text-accent-deep">
+                        {format(r.valeur)}
+                      </span>
+                    </span>
+                  ))}
+              </>
+            ) : (
+              <span>Rien en attente — le traitement est à jour.</span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Reste à faire, ventilé par tier */}
-      <div className="rounded-lg border border-border bg-muted/40 p-4">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            Reste à faire
-          </span>
-          <span
-            className={`font-mono text-2xl font-bold tracking-tighter ${
-              totalReste > 0 ? "text-accent-deep" : "text-muted-foreground"
-            }`}
-          >
-            {format(totalReste)}
-          </span>
-        </div>
-        {totalReste > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-            {reste.map((r) => (
-              <span
-                key={r.nom}
-                className="font-mono text-xs text-muted-foreground"
-              >
-                {r.nom}{" "}
-                <span
-                  className={
-                    r.valeur > 0 ? "font-bold text-accent-deep" : undefined
-                  }
-                >
-                  {format(r.valeur)}
-                </span>
-              </span>
+      {/* Canaux de données déjà récupérés (Dropcontact) */}
+      {traitement.canaux && (
+        <div>
+          <div className="mb-3 flex items-baseline justify-between gap-4">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Données déjà récupérées sur les {format(total)} contacts
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              Le prochain passage complète les {format(totalReste)} fiches en
+              attente
+            </span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {traitement.canaux.map((canal) => (
+              <div key={canal.nom}>
+                <div className="mb-1.5 flex items-baseline justify-between text-xs">
+                  <span className="font-medium">{canal.nom}</span>
+                  <span className="font-mono text-muted-foreground">
+                    <span className="font-bold text-foreground">
+                      {format(canal.valeur)}
+                    </span>{" "}
+                    / {format(total)} ·{" "}
+                    {Math.round((canal.valeur / total) * 100)}&nbsp;%
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-foreground/45"
+                    style={{ width: `${(canal.valeur / total) * 100}%` }}
+                  />
+                </div>
+              </div>
             ))}
           </div>
-        ) : (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Rien en attente — le traitement est à jour.
-          </p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
