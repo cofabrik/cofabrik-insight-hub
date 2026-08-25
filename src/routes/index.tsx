@@ -257,6 +257,7 @@ function PanneauBase({
   miseEnAvant: "encre" | "cobalt";
 }) {
   const [tierA, ...autres] = tiers;
+  if (!tierA) return null;
   const couleur = miseEnAvant === "cobalt" ? "bg-primary" : "bg-foreground";
   const texte = miseEnAvant === "cobalt" ? "text-primary" : "text-foreground";
 
